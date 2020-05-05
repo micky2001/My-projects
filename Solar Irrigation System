@@ -1,0 +1,108 @@
+#include <Servo.h>  
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(5,4,3,2,1,0);
+
+Servo m1;                
+int pos = 90; 
+int LDR1 = A0;              
+int LDR2 = A1;
+int left,right;                            
+
+int water_pump = 13;     
+int ms_sensor = A2;        
+int val;                  
+int l_limit = 80;
+int u_limit = 20;
+
+
+void setup()
+{
+  lcd.begin(16,2);
+ // Serial.begin(9600);
+  m1.attach(9);    
+  m1.write(pos);     
+  pinMode(LDR1,INPUT);    
+  pinMode(LDR2,INPUT);   
+  pinMode(ms_sensor,INPUT);       
+  pinMode(water_pump,OUTPUT);
+  lcd.setCursor(0,0);
+   lcd.print("LEFT");
+   lcd.setCursor(8,0);
+   lcd.print("RIGHT");
+}
+
+void single_axis_sun_tracker()
+{
+   
+   left = analogRead(LDR1);
+   right = analogRead(LDR2);
+   left = map(left,0,1023,0,100);
+   right = map(right,0,1023,0,100);
+   lcd.setCursor(4,0);
+   lcd.print(left,10);
+   lcd.setCursor(13,0);
+   lcd.print(right,10);
+   
+
+   if(left > (right+20))   //backward movement
+   {
+      if(pos < 180)
+      {
+        pos = pos+1;
+      }
+      m1.write(pos);
+      delay(30);
+   }
+   else if(right > (left+20)) //forward
+   {
+      if(pos > 0)
+      {
+        pos = pos-1;
+      }
+      m1.write(pos);
+      delay(30);
+   }
+
+  
+}
+
+void irrigation_system()
+{
+   val = analogRead(ms_sensor);
+   val = map(val,0,1023,0,100);
+   lcd.setCursor(0,1);
+   lcd.print("moist");
+   lcd.setCursor(5,1);
+   lcd.print(val,10);
+  if(val <= l_limit)
+    {
+       digitalWrite(water_pump,HIGH);
+       lcd.setCursor(8,1);
+       lcd.print("PUMP IS ON");
+       while(val <= u_limit)
+       {     
+           val = analogRead(ms_sensor);
+           val = map(val,0,1023,0,100);
+           lcd.setCursor(4,1);
+           lcd.print(val,10);
+       }
+       digitalWrite(water_pump,LOW);
+        lcd.setCursor(8,1);
+        lcd.print("PUMP OFF");
+    }
+    else
+    {
+       digitalWrite(water_pump,LOW);
+        lcd.setCursor(8,1);
+        lcd.print("PUMP OFF");
+    }
+}
+
+
+void loop()
+{
+  single_axis_sun_tracker();
+  irrigation_system();
+  delay(30);
+}
